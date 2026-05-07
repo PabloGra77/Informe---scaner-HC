@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.Python
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Salidas del proyecto
+INFORME_*.xlsx
+INFORME_ENCARPETADO*.xlsx
+~$*.xlsx
+*.log
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# OneDrive temporales
+*~$*
+
+# Datos clinicos / PDFs reales (NO subir, contienen datos personales)
+EJEMPLO PDF/
+PDF NUEVOS/
+*.pdf
