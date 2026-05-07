@@ -4,6 +4,13 @@ Todas las versiones notables de este proyecto se documentan aqui.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto usa [SemVer](https://semver.org/lang/es/).
 
+## [1.2.0] - 2026-05-07
+### Changed
+- Rediseno completo de la interfaz: tema moderno, header azul, tarjetas
+  blancas con borde, botones con color (primary / danger), panel de
+  estadisticas tipo cards, log con estilo consola y coloreo de mensajes,
+  selector inteligente segun el modo y hint dinamico.
+
 ## [1.1.0] - 2026-05-07
 ### Added
 - Nuevo modo "Informe HC NUEVOS" (`--accion informe-nuevos`):
