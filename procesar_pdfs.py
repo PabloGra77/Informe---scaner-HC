@@ -1,11 +1,21 @@
 import argparse
+import functools
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from datetime import datetime
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Tuple
+
+# Asegura que cada print llegue inmediatamente al proceso padre (la GUI),
+# evitando el buffering por bloque cuando stdout esta conectado a un PIPE.
+print = functools.partial(print, flush=True)  # type: ignore[assignment]
+try:
+    sys.stdout.reconfigure(line_buffering=True)  # type: ignore[attr-defined]
+except Exception:
+    pass
 
 from openpyxl import Workbook, load_workbook
 from pypdf import PdfReader
@@ -534,6 +544,15 @@ def process_pdfs_streaming(
     sin_numero = 0
     errores = 0
 
+    # Si hay pocos PDFs, fuerza progreso en cada uno para que la GUI muestre movimiento.
+    effective_every = 1 if total_expected <= 50 else progress_every
+
+    def _emit_progress() -> None:
+        # Emite progreso en el primer PDF, cada N segun configuracion y al final.
+        if total == 1 or total % effective_every == 0 or total == total_expected:
+            remaining = max(total_expected - total, 0)
+            print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+
     if workers <= 1:
         for pdf in pdf_iter:
             row = extract_row_data(pdf)
@@ -548,9 +567,7 @@ def process_pdfs_streaming(
             else:
                 errores += 1
 
-            if total % progress_every == 0:
-                remaining = max(total_expected - total, 0)
-                print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+            _emit_progress()
         return total, ok, sin_numero, errores
 
     max_inflight = max(workers * 4, 16)
@@ -575,9 +592,7 @@ def process_pdfs_streaming(
                     else:
                         errores += 1
 
-                    if total % progress_every == 0:
-                        remaining = max(total_expected - total, 0)
-                        print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+                    _emit_progress()
 
         while inflight:
             done, inflight = wait(inflight, return_when=FIRST_COMPLETED)
@@ -594,9 +609,7 @@ def process_pdfs_streaming(
                 else:
                     errores += 1
 
-                if total % progress_every == 0:
-                    remaining = max(total_expected - total, 0)
-                    print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+                _emit_progress()
 
     return total, ok, sin_numero, errores
 
@@ -806,6 +819,13 @@ def process_pdfs_nuevos_streaming(
     ok = 0
     errores = 0
 
+    effective_every = 1 if total_expected <= 50 else progress_every
+
+    def _emit_progress() -> None:
+        if total == 1 or total % effective_every == 0 or total == total_expected:
+            remaining = max(total_expected - total, 0)
+            print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+
     if workers <= 1:
         for pdf in pdf_iter:
             row = extract_row_nuevo(pdf)
@@ -815,9 +835,7 @@ def process_pdfs_nuevos_streaming(
                 ok += 1
             else:
                 errores += 1
-            if total % progress_every == 0:
-                remaining = max(total_expected - total, 0)
-                print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+            _emit_progress()
         return total, ok, errores
 
     max_inflight = max(workers * 4, 16)
@@ -835,9 +853,7 @@ def process_pdfs_nuevos_streaming(
                         ok += 1
                     else:
                         errores += 1
-                    if total % progress_every == 0:
-                        remaining = max(total_expected - total, 0)
-                        print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+                    _emit_progress()
         while inflight:
             done, inflight = wait(inflight, return_when=FIRST_COMPLETED)
             for fut in done:
@@ -848,9 +864,7 @@ def process_pdfs_nuevos_streaming(
                     ok += 1
                 else:
                     errores += 1
-                if total % progress_every == 0:
-                    remaining = max(total_expected - total, 0)
-                    print(f"Progreso: {total} de {total_expected} | Faltan: {remaining}")
+                _emit_progress()
 
     return total, ok, errores
 

@@ -29,7 +29,8 @@ def _run_processor_args(args: list) -> list:
     """
     if getattr(sys, "frozen", False):
         return [sys.executable, "--cli", *args]
-    return [sys.executable, str(_app_dir() / "procesar_pdfs.py"), *args]
+    # -u desactiva el buffering de stdout/stderr para que la GUI vea el progreso en vivo.
+    return [sys.executable, "-u", str(_app_dir() / "procesar_pdfs.py"), *args]
 
 
 class App(tk.Tk):
@@ -488,6 +489,11 @@ class App(tk.Tk):
             if os.name == "nt":
                 creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
+            # Forzar salida sin buffer en el subproceso (vital cuando stdout es un PIPE).
+            child_env = os.environ.copy()
+            child_env["PYTHONUNBUFFERED"] = "1"
+            child_env["PYTHONIOENCODING"] = "utf-8"
+
             self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -495,11 +501,13 @@ class App(tk.Tk):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                bufsize=1,  # line-buffered
                 creationflags=creationflags,
+                env=child_env,
             )
 
             assert self.process.stdout is not None
-            for line in self.process.stdout:
+            for line in iter(self.process.stdout.readline, ""):
                 self.output_queue.put(("line", line.rstrip()))
 
             code = self.process.wait()
