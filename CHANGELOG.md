@@ -4,6 +4,12 @@ Todas las versiones notables de este proyecto se documentan aqui.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto usa [SemVer](https://semver.org/lang/es/).
 
+## [1.2.2] - 2026-05-08
+### Added
+- Modo "Informe HC NUEVOS": dos columnas nuevas en el Excel de salida,
+  `novedades` y `fecha_novedad`, extraidas de la seccion "12. NOVEDADES"
+  del formato de historia clinica (con fallback si el titulo no esta numerado).
+
 ## [1.2.1] - 2026-05-08
 ### Fixed
 - La interfaz ahora muestra el progreso en vivo (TOTAL / PROCESADOS / FALTAN

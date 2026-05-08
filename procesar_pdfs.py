@@ -85,6 +85,8 @@ HEADERS_NUEVOS = [
     "diagnostico_codigo",
     "diagnostico_descripcion",
     "nota",
+    "novedades",
+    "fecha_novedad",
     "estado",
     "observacion",
 ]
@@ -760,9 +762,56 @@ def _extract_nota(text: str) -> str:
     return ""
 
 
+def _extract_novedades(text: str) -> Tuple[str, str]:
+    """Extrae el contenido de la seccion '12. NOVEDADES'.
+
+    Devuelve (novedades, fecha_novedad). Busca primero el bloque
+    delimitado por '12. NOVEDADES' y la siguiente seccion numerada o
+    final del documento. Tiene fallback si no aparece la numeracion.
+    """
+    # Bloque desde "12. NOVEDADES" hasta la siguiente seccion (13.) o fin.
+    m = re.search(
+        r"(?is)\b12\.\s*NOVEDADES\b(.+?)(?=\n\s*1[3-9]\.\s|\n\s*\d{2,}\.\s|\Z)",
+        text,
+    )
+    if not m:
+        # Fallback: titulo NOVEDADES sin numero.
+        m = re.search(
+            r"(?is)\bNOVEDADES\b\s*\n(.+?)(?=\n\s*\d+\.\s|\Z)",
+            text,
+        )
+    if not m:
+        return "", ""
+
+    block = m.group(1)
+
+    # Campo "Novedades  <texto>"  (texto puede continuar en lineas siguientes)
+    novedades = ""
+    n_match = re.search(
+        r"(?im)^\s*Novedades\s*[:\-]?\s*(.+?)(?=\n\s*Fecha\s+de\s+novedad\b|\n\s*\d+\.\s|\Z)",
+        block,
+    )
+    if n_match:
+        novedades = clean_value(
+            " ".join(ln.strip() for ln in n_match.group(1).splitlines() if ln.strip())
+        )[:1000]
+
+    # Campo "Fecha de novedad  <fecha>"
+    fecha = ""
+    f_match = re.search(
+        r"(?im)^\s*Fecha\s+de\s+novedad\s*[:\-]?\s*(.+?)\s*$",
+        block,
+    )
+    if f_match:
+        fecha = clean_value(f_match.group(1))
+
+    return novedades, fecha
+
+
 def detect_fields_nuevo(text: str) -> Dict[str, str]:
     paciente, numero_ide, _tipo_id = _extract_paciente_y_numero_ide(text)
     diag_tipo, diag_clase, diag_codigo, diag_desc = _extract_diagnostico(text)
+    novedades, fecha_novedad = _extract_novedades(text)
 
     return {
         "paciente": paciente,
@@ -775,6 +824,8 @@ def detect_fields_nuevo(text: str) -> Dict[str, str]:
         "diagnostico_codigo": diag_codigo,
         "diagnostico_descripcion": diag_desc,
         "nota": _extract_nota(text),
+        "novedades": novedades,
+        "fecha_novedad": fecha_novedad,
     }
 
 
@@ -792,6 +843,8 @@ def extract_row_nuevo(pdf_path: Path) -> Dict[str, str]:
         "diagnostico_codigo": "",
         "diagnostico_descripcion": "",
         "nota": "",
+        "novedades": "",
+        "fecha_novedad": "",
         "estado": "OK",
         "observacion": "",
     }
