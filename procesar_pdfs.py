@@ -59,6 +59,8 @@ HEADERS = [
     "tipo_identificacion",
     "numero_documento",
     "fecha_atencion",
+    "novedades",
+    "fecha_novedad",
     "estado",
     "observacion",
 ]
@@ -150,6 +152,10 @@ def detect_fields(text: str) -> Dict[str, str]:
             found["codigo_actividad"] = clean_value(fallback_codigo.group(1))
 
     found["fecha_atencion"] = extract_fecha_atencion(text)
+
+    novedades, fecha_novedad = _extract_novedades(text)
+    found["novedades"] = novedades
+    found["fecha_novedad"] = fecha_novedad
 
     return found
 

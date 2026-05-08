@@ -4,6 +4,11 @@ Todas las versiones notables de este proyecto se documentan aqui.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto usa [SemVer](https://semver.org/lang/es/).
 
+## [1.2.3] - 2026-05-08
+### Added
+- Modo Clasico (renombrar + informe): ahora incluye columnas `novedades` y
+  `fecha_novedad` extraidas de la seccion "12. NOVEDADES" del HC.
+
 ## [1.2.2] - 2026-05-08
 ### Added
 - Modo "Informe HC NUEVOS": dos columnas nuevas en el Excel de salida,

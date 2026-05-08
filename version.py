@@ -5,7 +5,7 @@ para detectar nuevas actualizaciones desde la interfaz.
 """
 
 APP_NAME = "RenombrePanacea"
-APP_VERSION = "1.2.2"
+APP_VERSION = "1.2.3"
 
 # Repositorio GitHub (usuario/repo) usado por el actualizador.
 GITHUB_OWNER = "PabloGra77"
