@@ -771,45 +771,59 @@ def _extract_nota(text: str) -> str:
 def _extract_novedades(text: str) -> Tuple[str, str]:
     """Extrae el contenido de la seccion '12. NOVEDADES'.
 
-    Devuelve (novedades, fecha_novedad). Busca primero el bloque
-    delimitado por '12. NOVEDADES' y la siguiente seccion numerada o
-    final del documento. Tiene fallback si no aparece la numeracion.
+    pypdf extrae tablas con el valor de la columna derecha ANTES de la
+    etiqueta de la columna izquierda en la misma linea, p.ej.:
+        "  Desistimiento inicial programaNovedades"
+        "  07/04/2026Fecha de novedad"
+    Pero si la celda esta vacia la etiqueta aparece sola en su linea.
+
+    Devuelve (novedades, fecha_novedad).
     """
-    # Bloque desde "12. NOVEDADES" hasta la siguiente seccion (13.) o fin.
+    # Obtener bloque desde "12. NOVEDADES" hasta firma / pie / fin.
     m = re.search(
-        r"(?is)\b12\.\s*NOVEDADES\b(.+?)(?=\n\s*1[3-9]\.\s|\n\s*\d{2,}\.\s|\Z)",
+        r"(?is)\b12\.\s*NOVEDADES\b(.+?)(?=\nFirma\b|\nESTADISTICA\b|\Z)",
         text,
     )
     if not m:
-        # Fallback: titulo NOVEDADES sin numero.
         m = re.search(
-            r"(?is)\bNOVEDADES\b\s*\n(.+?)(?=\n\s*\d+\.\s|\Z)",
+            r"(?is)\bNOVEDADES\b\s*\n(.+?)(?=\nFirma\b|\nESTADISTICA\b|\Z)",
             text,
         )
     if not m:
         return "", ""
 
     block = m.group(1)
-
-    # Campo "Novedades  <texto>"  (texto puede continuar en lineas siguientes)
     novedades = ""
-    n_match = re.search(
-        r"(?im)^\s*Novedades\s*[:\-]?\s*(.+?)(?=\n\s*Fecha\s+de\s+novedad\b|\n\s*\d+\.\s|\Z)",
-        block,
-    )
-    if n_match:
-        novedades = clean_value(
-            " ".join(ln.strip() for ln in n_match.group(1).splitlines() if ln.strip())
-        )[:1000]
-
-    # Campo "Fecha de novedad  <fecha>"
     fecha = ""
-    f_match = re.search(
-        r"(?im)^\s*Fecha\s+de\s+novedad\s*[:\-]?\s*(.+?)\s*$",
-        block,
-    )
-    if f_match:
-        fecha = clean_value(f_match.group(1))
+
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # Patron A: "  <valor>Novedades"  (valor pegado antes de la etiqueta)
+        if stripped.endswith("Novedades"):
+            candidate = stripped[: -len("Novedades")].strip()
+            if candidate:
+                novedades = clean_value(candidate)[:1000]
+
+        # Patron B: "  <fecha>Fecha de novedad"
+        elif re.search(r"Fecha\s+de\s+novedad\s*$", stripped, re.IGNORECASE):
+            candidate = re.sub(r"\s*Fecha\s+de\s+novedad\s*$", "", stripped, flags=re.IGNORECASE).strip()
+            if candidate:
+                fecha = clean_value(candidate)
+
+        # Patron C (fallback): "Novedades  <valor>" en la misma linea
+        elif re.match(r"Novedades\s*[:\-]?\s*\S", stripped):
+            candidate = re.sub(r"^Novedades\s*[:\-]?\s*", "", stripped).strip()
+            if candidate:
+                novedades = clean_value(candidate)[:1000]
+
+        # Patron D (fallback): "Fecha de novedad  <valor>" en la misma linea
+        elif re.match(r"Fecha\s+de\s+novedad\s*[:\-]?\s*\S", stripped, re.IGNORECASE):
+            candidate = re.sub(r"^Fecha\s+de\s+novedad\s*[:\-]?\s*", "", stripped, flags=re.IGNORECASE).strip()
+            if candidate:
+                fecha = clean_value(candidate)
 
     return novedades, fecha
 
